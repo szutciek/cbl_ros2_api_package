@@ -1,6 +1,8 @@
 import random
 import websocket
 
+import threading
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
@@ -20,9 +22,23 @@ class Talker(Node):
         self.publisher_.publish(msg)
         self.get_logger().info(f'Published message: "{msg.data}"')
 
+def start_websocket_client():
+    ws.run_forever(ping_interval=30, ping_timeout=10)
+
 def main():
+    global wsapp
+
     rclpy.init()
     talker = Talker()
+
+    def on_message(wsapp, message):
+        print(message)
+        talker.publish_message(message)
+    
+    wsapp = websocket.WebSocketApp("wss://fakens.kanapka.eu/wss", on_message=on_message)
+
+    ws_thread = threading.Thread(target=start_websocket_client, daemon=True)
+    ws_thread.start()
 
     try:
         rclpy.spin(talker)
@@ -34,10 +50,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-def on_message(wsapp, message):
-    Talker.publish_message(message)
-
-wsapp = websocket.WebSocketApp("wss://fakens.kanapka.eu/wss", on_message=on_message)
-
-wsapp.run_forever() 
