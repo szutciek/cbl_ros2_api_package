@@ -5,26 +5,277 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Train API Service</title>
   </head>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      margin: 0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 3fr 1fr 1fr;
+      gap: 20px;
+      padding: 20px;
+      height: 100vh;
+    }
+    .station {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .arrivals,
+    .departures {
+      background-color: #fff;
+      padding: 16px;
+      border-radius: 4px;
+      box-shadow: 0 0 20px #0000000a;
+      border: 1px solid #e6e6e6;
+    }
+    .arrivals h2,
+    .departures h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .platform {
+      position: relative;
+      background-color: #777777;
+      min-height: 200px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .platform h1 {
+      font-size: 30px;
+      color: #fff;
+    }
+    .platform::after,
+    .platform::before {
+      content: "";
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      height: 5px;
+      background-color: #fff239;
+    }
+    .platform::before {
+      top: unset;
+      bottom: 10px;
+    }
+    button {
+      width: fit-content;
+      padding: 10px;
+      background-color: #ababff;
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #9292ff;
+    }
+    hr {
+      margin-top: 20px;
+      margin-bottom: 20px;
+    }
+
+    .train {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 2px;
+      background-color: #ababff;
+      border: 1px solid #9292ff;
+    }
+    .train .right {
+      text-align: right;
+    }
+    .train .type {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .train .destination {
+      font-size: 14px;
+      font-weight: 400;
+    }
+    .train .track {
+      font-size: 14px;
+      font-weight: 400;
+    }
+    .train .time {
+      font-size: 16px;
+      font-weight: 400;
+    }
+  </style>
+
   <body>
-    <hr />
-    <div style="height: 20px"></div>
-    <button class="1">Boarding Request Track 1</button>
-    <div style="height: 20px"></div>
-    <hr />
-    <div style="height: 80px"></div>
-    <p>PLATFORM 1</p>
-    <div style="height: 80px"></div>
-    <hr />
-    <div style="height: 20px"></div>
-    <button class="2">Boarding Request Track 2</button>
-    <div style="height: 20px"></div>
-    <hr />
+    <div class="grid">
+      <div class="station">
+        <hr />
+        <button class="1">Boarding Request Track 1</button>
+        <hr />
+        <div class="platform">
+          <h1>PLATFORM 1</h1>
+        </div>
+        <hr />
+        <button class="2">Boarding Request Track 2</button>
+        <hr />
+      </div>
+      <div class="arrivals">
+        <h2>Arrivals</h2>
+        <div class="list"></div>
+      </div>
+      <div class="departures">
+        <h2>Departures</h2>
+        <div class="list"></div>
+      </div>
+    </div>
 
     <script>
+      let allTrains = [];
+
+      const arrivals = document.querySelector(".arrivals");
+      const departures = document.querySelector(".departures");
+
+      const updateBoard = (data, board) => {
+        if (board.classList.contains("departures")) {
+          allTrains = allTrains.sort(
+            (a, b) => a.departureTime.getTime() > b.departureTime.getTime()
+          );
+        } else {
+          allTrains = allTrains.sort(
+            (a, b) => a.arrivalTime.getTime() > b.arrivalTime.getTime()
+          );
+        }
+        const list = board.querySelector(".list");
+        list.innerHTML = "";
+        data.forEach((item) => {
+          const train = document.createElement("div");
+          train.classList.add("train");
+          //
+          const left = document.createElement("div");
+          left.classList.add("left");
+          const right = document.createElement("div");
+          right.classList.add("right");
+          //
+          const type = document.createElement("p");
+          type.classList.add("type");
+          type.innerText = `${item.type}`;
+          //
+          const destination = document.createElement("p");
+          destination.classList.add("destination");
+          destination.innerText = `to ${item.destination}`;
+          //
+          const track = document.createElement("p");
+          track.classList.add("track");
+          track.innerText = `Track ${item.track}`;
+          //
+          const time = document.createElement("p");
+          time.classList.add("time");
+          if (board.classList.contains("departures")) {
+            const hour = item.departureTime.getHours();
+            const minute = item.departureTime.getMinutes();
+            time.textContent = `${hour}:${`${minute}`.padStart(2, "0")}`;
+          } else {
+            const hour = item.arrivalTime.getHours();
+            const minute = item.arrivalTime.getMinutes();
+            time.textContent = `${hour}:${`${minute}`.padStart(2, "0")}`;
+          }
+          //
+          left.appendChild(type);
+          left.appendChild(destination);
+          right.appendChild(time);
+          right.appendChild(track);
+          //
+          train.appendChild(left);
+          train.appendChild(right);
+          list.appendChild(train);
+        });
+      };
+
+      class Train {
+        constructor(type, track) {
+          this.id = crypto.randomUUID().split("-")[1];
+          this.type = type;
+          this.track = track;
+          if (track === 1) {
+            this.destination = "Amsterdam";
+          } else {
+            this.destination = "Maastricht";
+          }
+        }
+
+        setArrivalTime(time) {
+          this.arrivalTime = time;
+        }
+
+        setDepartureTime(time) {
+          this.departureTime = time;
+        }
+      }
+
+      const trainTypes = ["NS Intercity", "NS Sprinter", "NS Intercity Direct"];
+
+      const generateNTrains = (n) => {
+        let planTime = Date.now();
+        // Track 1
+        for (let i = 0; i < n; i++) {
+          const trainType = Math.floor(Math.random() * trainTypes.length);
+          const train = new Train(trainTypes[trainType], 1);
+          planTime += Math.floor(Math.random() * 2 * 60 * 1000);
+          train.setArrivalTime(new Date(planTime));
+          planTime += Math.floor(Math.random() * 2 * 60 * 1000);
+          train.setDepartureTime(new Date(planTime));
+          allTrains.push(train);
+        }
+
+        planTime = Date.now();
+        // Track 2
+        for (let i = 0; i < n; i++) {
+          const trainType = Math.floor(Math.random() * trainTypes.length);
+          const train = new Train(trainTypes[trainType], 2);
+          planTime += Math.floor(Math.random() * 5 * 60 * 1000);
+          train.setArrivalTime(new Date(planTime));
+          planTime += Math.floor(Math.random() * 5 * 60 * 1000);
+          train.setDepartureTime(new Date(planTime));
+          allTrains.push(train);
+        }
+      };
+
+      const clearDepartedTrains = () => {
+        const now = Date.now();
+        allTrains = allTrains.filter((t) => t.departureTime.getTime() > now);
+      };
+
+      generateNTrains(5);
+
+      updateBoard(allTrains, arrivals);
+      updateBoard(allTrains, departures);
+
+      setInterval(() => {
+        clearDepartedTrains();
+        updateBoard(allTrains, arrivals);
+        updateBoard(allTrains, departures);
+      }, 1 * 1000);
+
+      setInterval(() => {
+        generateNTrains(1);
+      }, 60 * 1000);
+
       window.addEventListener("click", (e) => {
         if (!e.target.closest("button")) return;
         const track = e.target.closest("button").classList[0];
-        fetch(`/request?track=${track}`, {
+        fetch("/request", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
